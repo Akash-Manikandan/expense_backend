@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { Body, Post } from '@nestjs/common/decorators';
-import { LoginDto } from './dto/login.dto';
+import { AmountDto, LoginDto } from './dto/login.dto';
 import { UserService } from './user.service';
 
 @Controller('user')
@@ -13,9 +13,21 @@ export class UserController {
   //   return userData;
   // }
 
-  @Post()
-  async loginUser(@Body() user: LoginDto) {
-    const loginData: LoginDto = await this.userService.loginUser(user);
-    return loginData;
+  @Post('signupUser')
+  async signupUser(@Body() user: LoginDto) {
+    const signupData = await this.userService.signupUser(user);
+    return signupData;
+  }
+
+  @Post('signinUser')
+  async signinUser(@Body() user: LoginDto) {
+    const isSignedup = await this.userService.signinUser(user);
+    return isSignedup;
+  }
+
+  @Post('addIncome')
+  async addIncome(@Body() amount: AmountDto) {
+    const amt = await this.userService.addIncome(amount);
+    return amt;
   }
 }
