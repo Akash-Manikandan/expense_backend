@@ -18,7 +18,7 @@ export class UserService {
           password: user.password,
         },
       });
-      return signupData;
+      return { verified: true, signupData };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
