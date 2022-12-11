@@ -7,19 +7,6 @@ import { AmountDto, LoginDto } from './dto/login.dto';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async checkUser(user: LoginDto) {
-    const userData = await this.prisma.user.findUnique({
-      where: {
-        username: user.username,
-      },
-    });
-    if (userData != null) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   async signupUser(user: LoginDto) {
     try {
       const signupData = await this.prisma.user.create({
@@ -32,16 +19,19 @@ export class UserService {
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new HttpException('User already exist', HttpStatus.FORBIDDEN);
+          throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
+        } else {
+          throw error;
         }
+      } else {
+        throw error;
       }
     }
   }
 
   async signinUser(user: LoginDto) {
-    const isUser = await this.checkUser(user);
-    if (isUser == true) {
-      const signinData = await this.prisma.user.findUnique({
+    try {
+      const signinData = await this.prisma.user.findUniqueOrThrow({
         where: {
           username: user.username,
         },
@@ -49,17 +39,24 @@ export class UserService {
       if (signinData.username == user.username) {
         if (signinData.password == user.password) {
           console.log('Logged in');
-          return true;
+          return { verified: true, userId: signinData.id };
         } else {
-          console.log('Password incorrect');
-          return false;
+          throw new HttpException('Password Incorrect', HttpStatus.FORBIDDEN);
         }
       } else {
-        console.log('User does not exist');
-        return false;
+        throw new HttpException('User does not exist', HttpStatus.FORBIDDEN);
       }
-    } else {
-      console.log('User does not exist');
+    } catch (error) {
+      console.log(error);
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException('Invalid User', HttpStatus.FORBIDDEN);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
     }
   }
 
