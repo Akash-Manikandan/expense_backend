@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { addExpenseDto } from './dto/add-expense.dto';
 import * as dayjs from 'dayjs';
+import { userInfo } from 'os';
 
 @Injectable()
 export class ExpenseService {
@@ -36,15 +37,37 @@ export class ExpenseService {
       },
     });
     const dayOfWeek = dayjs(expense.date).day();
-
-    const udateStats = await this.prismaService.stats.update({
-      where:{
-        userId:expenseData.userId
+    const userStats = await this.prismaService.user.findUnique({
+      where: {
+        id: expenseData.userId,
       },
-      data:{
-        quota:[]
-      }
+      select: {
+        stats: true,
+      },
     });
+    console.log(userStats);
+
+    const updateStats = await this.prismaService.stats.update({
+      where: {
+        id: expenseData.userId,
+      },
+      data: {
+        quota: {
+          // set: [...userStats.stats, dayOfWeek],
+        },
+      },
+    });
+
+    // const updateStats = await this.prismaService.stats.upsert({
+    //   where: {
+    //     id: expenseData.userId,
+    //   },
+    //   create: {
+    //     day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    //     quota[dayOfWeek] : expenseData.amount,
+    //   },
+    //   update: {},
+    // });
     return { expense, updateIncome };
   }
 }
