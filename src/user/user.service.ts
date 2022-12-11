@@ -20,8 +20,8 @@ export class UserService {
   }
 
   async signupUser(user: LoginDto) {
-    const isUser = this.checkUser(user);
-    if ((await isUser) == false) {
+    const isUser = await this.checkUser(user);
+    if (isUser == false) {
       const signupData = await this.prisma.user.create({
         data: {
           username: user.username,
@@ -36,18 +36,13 @@ export class UserService {
   }
 
   async signinUser(user: LoginDto) {
-    const isUser = this.checkUser(user);
-    if ((await isUser) == true) {
+    const isUser = await this.checkUser(user);
+    if (isUser == true) {
       const signinData = await this.prisma.user.findUnique({
         where: {
           username: user.username,
         },
       });
-      // console.log(signinData.username);
-      // console.log(user.username);
-
-      // console.log(signinData);
-
       if (signinData.username == user.username) {
         if (signinData.password == user.password) {
           console.log('Logged in');
