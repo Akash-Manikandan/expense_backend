@@ -1,5 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientUnknownRequestError,
+} from '@prisma/client/runtime';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AmountDto, LoginDto } from './dto/login.dto';
 
@@ -20,9 +23,9 @@ export class UserService {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new HttpException('User already exists', HttpStatus.FORBIDDEN);
-        } else {
-          throw error;
         }
+      } else if (error instanceof PrismaClientUnknownRequestError) {
+        throw error;
       } else {
         throw error;
       }
@@ -38,7 +41,6 @@ export class UserService {
       });
       if (signinData.username == user.username) {
         if (signinData.password == user.password) {
-          // console.log('Logged in');
           return { verified: true, userId: signinData.id };
         } else {
           throw new HttpException('Password Incorrect', HttpStatus.FORBIDDEN);
@@ -47,13 +49,17 @@ export class UserService {
         throw new HttpException('User does not exist', HttpStatus.FORBIDDEN);
       }
     } catch (error) {
-      // console.log(error);
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new HttpException('Invalid User', HttpStatus.FORBIDDEN);
         } else {
-          throw error;
+          throw new HttpException(
+            'Username field is empty',
+            HttpStatus.FORBIDDEN,
+          );
         }
+      } else if (error instanceof PrismaClientUnknownRequestError) {
+        throw error;
       } else {
         throw error;
       }
