@@ -32,6 +32,8 @@ export class UserService {
     }
   }
 
+  //error.code === 'P2002' signup unique constraint
+
   async signinUser(user: LoginDto) {
     try {
       const signinData = await this.prisma.user.findUniqueOrThrow({
@@ -39,22 +41,35 @@ export class UserService {
           username: user.username,
         },
       });
+
       if (signinData.username == user.username) {
         if (signinData.password == user.password) {
           return { verified: true, userId: signinData.id };
         } else {
-          throw new HttpException('Password Incorrect', HttpStatus.FORBIDDEN);
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: 'Password Incorrect' },
+            HttpStatus.FORBIDDEN,
+          );
         }
       } else {
-        throw new HttpException('User does not exist', HttpStatus.FORBIDDEN);
+        throw new HttpException(
+          { status: HttpStatus.FORBIDDEN, message: 'User does not exist' },
+          HttpStatus.FORBIDDEN,
+        );
       }
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
-          throw new HttpException('Invalid User', HttpStatus.FORBIDDEN);
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: 'Invalid User' },
+            HttpStatus.FORBIDDEN,
+          );
         } else {
           throw new HttpException(
-            'Username field is empty',
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: 'Username field is empty',
+            },
             HttpStatus.FORBIDDEN,
           );
         }
