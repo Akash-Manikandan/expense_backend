@@ -38,7 +38,7 @@ export class UserService {
       });
       if (signinData.username == user.username) {
         if (signinData.password == user.password) {
-          console.log('Logged in');
+          // console.log('Logged in');
           return { verified: true, userId: signinData.id };
         } else {
           throw new HttpException('Password Incorrect', HttpStatus.FORBIDDEN);
@@ -47,7 +47,7 @@ export class UserService {
         throw new HttpException('User does not exist', HttpStatus.FORBIDDEN);
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new HttpException('Invalid User', HttpStatus.FORBIDDEN);
