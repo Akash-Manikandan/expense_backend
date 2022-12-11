@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { addExpenseDto } from './dto/add-expense.dto';
-import * as dayjs from 'dayjs';
+import dayjs from 'dayjs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 
 @Injectable()
