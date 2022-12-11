@@ -47,13 +47,13 @@ export class UserService {
           return { verified: true, userId: signinData.id };
         } else {
           throw new HttpException(
-            { status: HttpStatus.FORBIDDEN, message: 'Password Incorrect' },
+            { status: HttpStatus.FORBIDDEN, message: ['Password Incorrect'] },
             HttpStatus.FORBIDDEN,
           );
         }
       } else {
         throw new HttpException(
-          { status: HttpStatus.FORBIDDEN, message: 'User does not exist' },
+          { status: HttpStatus.FORBIDDEN, message: ['User does not exist'] },
           HttpStatus.FORBIDDEN,
         );
       }
@@ -61,14 +61,14 @@ export class UserService {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new HttpException(
-            { status: HttpStatus.FORBIDDEN, message: 'Invalid User' },
+            { status: HttpStatus.FORBIDDEN, message: ['Invalid User'] },
             HttpStatus.FORBIDDEN,
           );
         } else {
           throw new HttpException(
             {
               status: HttpStatus.FORBIDDEN,
-              message: 'Username field is empty',
+              message: ['Username field is empty'],
             },
             HttpStatus.FORBIDDEN,
           );
