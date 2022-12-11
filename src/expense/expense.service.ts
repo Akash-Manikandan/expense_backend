@@ -20,6 +20,9 @@ export class ExpenseService {
               },
             },
           },
+          select: {
+            date: true,
+          },
         });
         const updateIncome = await tx.user.update({
           where: {
@@ -43,9 +46,6 @@ export class ExpenseService {
           },
           select: {
             stats: true,
-            createdAt: true,
-            income: true,
-            id: true,
           },
         });
         const dayOfWeek = dayjs(expense.date).day();
@@ -83,11 +83,36 @@ export class ExpenseService {
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
-          throw new HttpException('User Not Found', HttpStatus.NOT_FOUND);
+          throw new HttpException(
+            {
+              status: HttpStatus.NOT_FOUND,
+              message: ['User Not Found'],
+            },
+            HttpStatus.NOT_FOUND,
+          );
         } else {
           throw error;
         }
       }
+    }
+  }
+
+  async getExpense(id: string) {
+    try {
+      const data = await this.prismaService.expense.findMany({
+        where: {
+          userId: id,
+        },
+        select: {
+          id: true,
+          description: true,
+          amount: true,
+          date: true,
+        },
+      });
+      return data;
+    } catch (error) {
+      throw error;
     }
   }
 }
