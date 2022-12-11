@@ -17,6 +17,16 @@ export class ExpenseService {
         },
       },
     });
-    return expense;
+    const updateIncome = await this.prismaService.user.update({
+      where: {
+        id: expenseData.userId,
+      },
+      data: {
+        income: {
+          decrement: expenseData.amount,
+        },
+      },
+    });
+    return { expense, updateIncome };
   }
 }
