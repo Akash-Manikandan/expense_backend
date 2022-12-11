@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { Body, Post } from '@nestjs/common/decorators';
+import { Body, Param, Post } from '@nestjs/common';
 import { AmountDto, LoginDto } from './dto/login.dto';
 import { UserService } from './user.service';
 
@@ -29,5 +29,10 @@ export class UserController {
   async addIncome(@Body() amount: AmountDto) {
     const amt = await this.userService.addIncome(amount);
     return amt;
+  }
+
+  @Get(':id')
+  async getUser(@Param('id') id: string) {
+    return this.userService.getUser(id);
   }
 }

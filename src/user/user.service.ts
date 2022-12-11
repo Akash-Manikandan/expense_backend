@@ -92,4 +92,37 @@ export class UserService {
     });
     return amt;
   }
+
+  async getUser(id: string) {
+    try {
+      const data = await this.prisma.user.findUniqueOrThrow({
+        where: {
+          id: id,
+        },
+        select: {
+          income: true,
+          username: true,
+          createdAt: true,
+          expense: {
+            select: {
+              id: true,
+              description: true,
+              date: true,
+              amount: true,
+            },
+          },
+        },
+      });
+      return data;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: ['User not found'] },
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      }
+    }
+  }
 }
