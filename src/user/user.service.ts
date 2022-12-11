@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AmountDto, LoginDto } from './dto/login.dto';
 
@@ -20,8 +21,7 @@ export class UserService {
   }
 
   async signupUser(user: LoginDto) {
-    const isUser = await this.checkUser(user);
-    if (isUser == false) {
+    try {
       const signupData = await this.prisma.user.create({
         data: {
           username: user.username,
@@ -29,9 +29,12 @@ export class UserService {
         },
       });
       return signupData;
-    } else {
-      console.log('User already exists');
-      return false;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new HttpException('User already exist', HttpStatus.FORBIDDEN);
+        }
+      }
     }
   }
 
