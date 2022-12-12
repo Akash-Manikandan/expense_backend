@@ -125,24 +125,26 @@ export class UserService {
 
   async addIncome(amount: AmountDto) {
     try {
-      const prevMonthBalance = await this.prisma.user.findUniqueOrThrow({
-        where: {
-          id: amount.userId,
-        },
-        select: {
-          income: true,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        const prevMonthBalance = tx.user.findUniqueOrThrow({
+          where: {
+            id: amount.userId,
+          },
+          select: {
+            income: true,
+          },
+        });
+        const accountBalance = (await prevMonthBalance).income + amount.income;
+        const monthlyIncome = tx.user.update({
+          where: {
+            id: amount.userId,
+          },
+          data: {
+            income: accountBalance,
+          },
+        });
+        return monthlyIncome;
       });
-      const accountBalance = prevMonthBalance.income + amount.income;
-      const monthlyIncome = await this.prisma.user.update({
-        where: {
-          id: amount.userId,
-        },
-        data: {
-          income: accountBalance,
-        },
-      });
-      return monthlyIncome;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -175,3 +177,55 @@ export class UserService {
     }
   }
 }
+
+// async addIncome(amount: AmountDto) {
+//     try {
+//       const prevMonthBalance = await this.prisma.user.findUniqueOrThrow({
+//         where: {
+//           id: amount.userId,
+//         },
+//         select: {
+//           income: true,
+//         },
+//       });
+//       const accountBalance = prevMonthBalance.income + amount.income;
+//       const monthlyIncome = await this.prisma.user.update({
+//         where: {
+//           id: amount.userId,
+//         },
+//         data: {
+//           income: accountBalance,
+//         },
+//       });
+//       return monthlyIncome;
+//     } catch (error) {
+//       if (error instanceof PrismaClientKnownRequestError) {
+//         if (error.code === 'P2025') {
+//           throw new HttpException(
+//             { status: HttpStatus.FORBIDDEN, message: ['User not found'] },
+//             HttpStatus.FORBIDDEN,
+//           );
+//         } else if (error.code === 'P2011') {
+//           throw new HttpException(
+//             {
+//               status: HttpStatus.FORBIDDEN,
+//               message: ['Income cannot be null'],
+//             },
+//             HttpStatus.FORBIDDEN,
+//           );
+//         } else {
+//           throw new HttpException(
+//             {
+//               status: HttpStatus.FORBIDDEN,
+//               message: ['Unknown Error'],
+//             },
+//             HttpStatus.FORBIDDEN,
+//           );
+//         }
+//       } else if (error instanceof PrismaClientUnknownRequestError) {
+//         throw error;
+//       } else {
+//         throw error;
+//       }
+//     }
+//   }
