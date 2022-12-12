@@ -90,6 +90,14 @@ export class ExpenseService {
             },
             HttpStatus.NOT_FOUND,
           );
+        } else if (error.code === 'P2023') {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: ['Malformed UserId'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
         } else {
           throw error;
         }
@@ -114,7 +122,29 @@ export class ExpenseService {
       });
       return data;
     } catch (error) {
-      throw error;
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException(
+            {
+              status: HttpStatus.NOT_FOUND,
+              message: ['User Not Found'],
+            },
+            HttpStatus.NOT_FOUND,
+          );
+        } else if (error.code === 'P2023') {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: ['Malformed UserId'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
     }
   }
 }
