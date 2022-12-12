@@ -99,7 +99,10 @@ export class ExpenseService {
             HttpStatus.FORBIDDEN,
           );
         } else {
-          throw error;
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+            HttpStatus.FORBIDDEN,
+          );
         }
       } else {
         throw error;
@@ -140,7 +143,10 @@ export class ExpenseService {
             HttpStatus.FORBIDDEN,
           );
         } else {
-          throw error;
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+            HttpStatus.FORBIDDEN,
+          );
         }
       } else {
         throw error;
