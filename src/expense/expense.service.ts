@@ -93,6 +93,8 @@ export class ExpenseService {
         } else {
           throw error;
         }
+      } else {
+        throw error;
       }
     }
   }
