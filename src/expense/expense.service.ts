@@ -179,6 +179,6 @@ export class ExpenseService {
         quota: statData.quota,
       },
     });
-    return updatedData;
+    return true;
   }
 }
