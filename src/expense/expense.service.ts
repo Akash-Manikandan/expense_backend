@@ -13,7 +13,7 @@ export class ExpenseService {
   async addExpense(expenseData: addExpenseDto) {
     try {
       return await this.prismaService.$transaction(async (tx) => {
-        const userData = await tx.user.findUnique({
+        const userData = await tx.user.findUniqueOrThrow({
           where: {
             id: expenseData.userId,
           },
@@ -122,7 +122,10 @@ export class ExpenseService {
         }
       } else {
         throw new HttpException(
-          { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+          {
+            status: HttpStatus.FORBIDDEN,
+            message: ['Amount exceeded account balance'],
+          },
           HttpStatus.FORBIDDEN,
         );
       }
