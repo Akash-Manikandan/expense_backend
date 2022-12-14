@@ -13,6 +13,12 @@ export class ExpenseService {
   async addExpense(expenseData: addExpenseDto) {
     try {
       return await this.prismaService.$transaction(async (tx) => {
+        const userData = await tx.user.findUnique({
+          where: {
+            id: expenseData.userId,
+          },
+        });
+        if (userData.income >= expenseData.amount) {
         const expense = await tx.expense.create({
           data: {
             amount: expenseData.amount,
@@ -24,12 +30,7 @@ export class ExpenseService {
             },
           },
         });
-        const userData = await tx.user.findUnique({
-          where: {
-            id: expenseData.userId,
-          },
-        });
-        if (userData.income >= expenseData.amount) {
+        
           const updateIncome = await tx.user.update({
             where: {
               id: expenseData.userId,
