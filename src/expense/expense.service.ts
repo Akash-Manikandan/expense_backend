@@ -108,7 +108,10 @@ export class ExpenseService {
           );
         }
       } else {
-        throw error;
+        throw new HttpException(
+          { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
   }
@@ -163,25 +166,24 @@ export class ExpenseService {
   async deleteExpense(expId: string) {
     try {
       return await this.prismaService.$transaction(async (tx) => {
-        const deleteData = tx.expense.delete({
+        const deleteData = await tx.expense.delete({
           where: {
             id: expId,
           },
         });
-        const dayOfWeek = dayjs((await deleteData).date).day();
-        const statData = tx.stats.findUnique({
+        const dayOfWeek = dayjs(deleteData.date).day();
+        const statData = await tx.stats.findUnique({
           where: {
-            userId: (await deleteData).userId,
+            userId: deleteData.userId,
           },
         });
-        (await statData).quota[dayOfWeek] -= (await deleteData).amount;
-
-        const updatedData = tx.stats.update({
+        statData.quota[dayOfWeek] -= deleteData.amount;
+        await tx.stats.update({
           where: {
-            id: (await statData).id,
+            id: statData.id,
           },
           data: {
-            quota: (await statData).quota,
+            quota: statData.quota,
           },
         });
         return true;
