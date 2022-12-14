@@ -19,18 +19,18 @@ export class ExpenseService {
           },
         });
         if (userData.income >= expenseData.amount) {
-        const expense = await tx.expense.create({
-          data: {
-            amount: expenseData.amount,
-            description: expenseData.description,
-            user: {
-              connect: {
-                id: expenseData.userId,
+          const expense = await tx.expense.create({
+            data: {
+              amount: expenseData.amount,
+              description: expenseData.description,
+              user: {
+                connect: {
+                  id: expenseData.userId,
+                },
               },
             },
-          },
-        });
-        
+          });
+
           const updateIncome = await tx.user.update({
             where: {
               id: expenseData.userId,
@@ -87,9 +87,13 @@ export class ExpenseService {
           });
           return users;
         } else {
-          return {
-            message: ['Amount exceeded account balance'],
-          };
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: ['Amount exceeded account balance'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
         }
       });
     } catch (error) {
