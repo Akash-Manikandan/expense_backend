@@ -160,37 +160,39 @@ export class ExpenseService {
 
   async deleteExpense(expId: string) {
     try {
-      const deleteData = await this.prismaService.expense.delete({
-        where: {
-          id: expId,
-        },
-      });
-      const dayOfWeek = dayjs(deleteData.date).day();
-      console.log(dayOfWeek);
+      return await this.prismaService.$transaction(async (tx) => {
+        const deleteData = tx.expense.delete({
+          where: {
+            id: expId,
+          },
+        });
+        const dayOfWeek = dayjs((await deleteData).date).day();
+        console.log(dayOfWeek);
 
-      const statData = await this.prismaService.stats.findUnique({
-        where: {
-          userId: deleteData.userId,
-        },
-      });
-      statData.quota[dayOfWeek] -= deleteData.amount;
+        const statData = tx.stats.findUnique({
+          where: {
+            userId: (await deleteData).userId,
+          },
+        });
+        (await statData).quota[dayOfWeek] -= (await deleteData).amount;
 
-      const updatedData = await this.prismaService.stats.update({
-        where: {
-          id: statData.id,
-        },
-        data: {
-          quota: statData.quota,
-        },
+        const updatedData = tx.stats.update({
+          where: {
+            id: (await statData).id,
+          },
+          data: {
+            quota: (await statData).quota,
+          },
+        });
+        return true;
       });
-      return true;
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new HttpException(
             {
               status: HttpStatus.NOT_FOUND,
-              message: ['Transaction Not Found'],
+              message: [false, 'Transaction Not Found'],
             },
             HttpStatus.NOT_FOUND,
           );
@@ -198,19 +200,19 @@ export class ExpenseService {
           throw new HttpException(
             {
               status: HttpStatus.FORBIDDEN,
-              message: ['Malformed Transaction'],
+              message: [false, 'Invalid Transaction'],
             },
             HttpStatus.FORBIDDEN,
           );
         } else {
           throw new HttpException(
-            { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+            { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
             HttpStatus.FORBIDDEN,
           );
         }
       } else if (error instanceof PrismaClientUnknownRequestError) {
         throw new HttpException(
-          { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+          { status: HttpStatus.FORBIDDEN, message: [false,'Unknown Error'] },
           HttpStatus.FORBIDDEN,
         );
       } else {
