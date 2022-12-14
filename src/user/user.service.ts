@@ -16,6 +16,9 @@ export class UserService {
         data: {
           username: user.username,
           password: user.password,
+          stats: {
+            create: {},
+          },
         },
       });
       return { verified: true, signupData };
