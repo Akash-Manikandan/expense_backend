@@ -6,7 +6,6 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
 } from '@prisma/client/runtime';
-import { deleteExpenseDto } from './dto/delete-expense.dto';
 
 @Injectable()
 export class ExpenseService {
