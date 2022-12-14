@@ -23,65 +23,73 @@ export class ExpenseService {
               },
             },
           },
-          select: {
-            date: true,
-          },
         });
-        const updateIncome = await tx.user.update({
+        const userData = await tx.user.findUnique({
           where: {
             id: expenseData.userId,
           },
-          data: {
-            income: {
-              decrement: expenseData.amount,
-            },
-            stats: {
-              connectOrCreate: {
-                where: {
-                  userId: expenseData.userId,
-                },
-                create: {
-                  day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                  quota: [0, 0, 0, 0, 0, 0, 0],
-                },
-              },
-            },
-          },
-          select: {
-            stats: true,
-          },
         });
-        const dayOfWeek = dayjs(expense.date).day();
-        const stats = updateIncome.stats;
-        stats.quota[dayOfWeek] += expenseData.amount;
-        const users = await tx.stats.update({
-          where: {
-            userId: expenseData.userId,
-          },
-          data: {
-            quota: stats.quota,
-          },
-          select: {
-            user: {
-              select: {
-                id: true,
-                income: true,
-                expense: {
-                  select: {
-                    id: true,
-                    description: true,
-                    amount: true,
-                    date: true,
+        if (userData.income >= expenseData.amount) {
+          const updateIncome = await tx.user.update({
+            where: {
+              id: expenseData.userId,
+            },
+            data: {
+              income: {
+                decrement: expenseData.amount,
+              },
+              stats: {
+                connectOrCreate: {
+                  where: {
+                    userId: expenseData.userId,
+                  },
+                  create: {
+                    day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                    quota: [0, 0, 0, 0, 0, 0, 0],
                   },
                 },
               },
             },
-            id: true,
-            day: true,
-            quota: true,
-          },
-        });
-        return users;
+            select: {
+              stats: true,
+            },
+          });
+          const dayOfWeek = dayjs(expense.date).day();
+          const stats = updateIncome.stats;
+          stats.quota[dayOfWeek] += expenseData.amount;
+          const users = await tx.stats.update({
+            where: {
+              userId: expenseData.userId,
+            },
+            data: {
+              quota: stats.quota,
+            },
+            select: {
+              user: {
+                select: {
+                  id: true,
+                  income: true,
+                  expense: {
+                    select: {
+                      id: true,
+                      description: true,
+                      amount: true,
+                      date: true,
+                    },
+                  },
+                },
+              },
+              id: true,
+              day: true,
+              quota: true,
+            },
+          });
+          return users;
+        } else {
+          return {
+            message: ['Amount exceeded account balance'],
+          };
+        }
       });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -172,7 +180,7 @@ export class ExpenseService {
           },
         });
         const dayOfWeek = dayjs(deleteData.date).day();
-        const statData = await tx.stats.findUnique({
+        const statData = await tx.stats.findUniqueOrThrow({
           where: {
             userId: deleteData.userId,
           },
