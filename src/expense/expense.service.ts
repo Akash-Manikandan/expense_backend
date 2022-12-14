@@ -2,7 +2,10 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { addExpenseDto } from './dto/add-expense.dto';
 import dayjs from 'dayjs';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import {
+  PrismaClientKnownRequestError,
+  PrismaClientUnknownRequestError,
+} from '@prisma/client/runtime';
 import { deleteExpenseDto } from './dto/delete-expense.dto';
 
 @Injectable()
@@ -156,29 +159,63 @@ export class ExpenseService {
   }
 
   async deleteExpense(expId: string) {
-    const deleteData = await this.prismaService.expense.delete({
-      where: {
-        id: expId,
-      },
-    });
-    const dayOfWeek = dayjs(deleteData.date).day();
-    console.log(dayOfWeek);
+    try {
+      const deleteData = await this.prismaService.expense.delete({
+        where: {
+          id: expId,
+        },
+      });
+      const dayOfWeek = dayjs(deleteData.date).day();
+      console.log(dayOfWeek);
 
-    const statData = await this.prismaService.stats.findUnique({
-      where: {
-        userId: deleteData.userId,
-      },
-    });
-    statData.quota[dayOfWeek] -= deleteData.amount;
+      const statData = await this.prismaService.stats.findUnique({
+        where: {
+          userId: deleteData.userId,
+        },
+      });
+      statData.quota[dayOfWeek] -= deleteData.amount;
 
-    const updatedData = await this.prismaService.stats.update({
-      where: {
-        id: statData.id,
-      },
-      data: {
-        quota: statData.quota,
-      },
-    });
-    return true;
+      const updatedData = await this.prismaService.stats.update({
+        where: {
+          id: statData.id,
+        },
+        data: {
+          quota: statData.quota,
+        },
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException(
+            {
+              status: HttpStatus.NOT_FOUND,
+              message: ['Transaction Not Found'],
+            },
+            HttpStatus.NOT_FOUND,
+          );
+        } else if (error.code === 'P2023') {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: ['Malformed Transaction'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      } else if (error instanceof PrismaClientUnknownRequestError) {
+        throw new HttpException(
+          { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+          HttpStatus.FORBIDDEN,
+        );
+      } else {
+        throw error;
+      }
+    }
   }
 }
