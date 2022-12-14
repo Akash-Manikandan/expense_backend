@@ -6,7 +6,6 @@ import {
   PrismaClientKnownRequestError,
   PrismaClientUnknownRequestError,
 } from '@prisma/client/runtime';
-import { deleteExpenseDto } from './dto/delete-expense.dto';
 
 @Injectable()
 export class ExpenseService {
@@ -166,16 +165,13 @@ export class ExpenseService {
         },
       });
       const dayOfWeek = dayjs(deleteData.date).day();
-      console.log(dayOfWeek);
-
       const statData = await this.prismaService.stats.findUnique({
         where: {
           userId: deleteData.userId,
         },
       });
       statData.quota[dayOfWeek] -= deleteData.amount;
-
-      const updatedData = await this.prismaService.stats.update({
+      await this.prismaService.stats.update({
         where: {
           id: statData.id,
         },
