@@ -153,7 +153,10 @@ export class ExpenseService {
           );
         }
       } else {
-        throw error;
+        throw new HttpException(
+          { status: HttpStatus.FORBIDDEN, message: ['Unknown Error'] },
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
   }
@@ -167,7 +170,6 @@ export class ExpenseService {
           },
         });
         const dayOfWeek = dayjs((await deleteData).date).day();
-
         const statData = tx.stats.findUnique({
           where: {
             userId: (await deleteData).userId,
@@ -209,13 +211,11 @@ export class ExpenseService {
             HttpStatus.FORBIDDEN,
           );
         }
-      } else if (error instanceof PrismaClientUnknownRequestError) {
+      } else {
         throw new HttpException(
           { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
           HttpStatus.FORBIDDEN,
         );
-      } else {
-        throw error;
       }
     }
   }
