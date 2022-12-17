@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { addExpenseDto } from './dto/add-expense.dto';
+import { addExpenseDto, sendToDto } from './dto/add-expense.dto';
 import dayjs from 'dayjs';
 import {
   PrismaClientKnownRequestError,
@@ -203,6 +203,62 @@ export class ExpenseService {
           },
         });
         return true;
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new HttpException(
+            {
+              status: HttpStatus.NOT_FOUND,
+              message: [false, 'Transaction Not Found'],
+            },
+            HttpStatus.NOT_FOUND,
+          );
+        } else if (error.code === 'P2023') {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: [false, 'Invalid Transaction'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
+        } else {
+          throw new HttpException(
+            { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      } else {
+        throw new HttpException(
+          { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
+  }
+
+  async sendTo(sendInfo: sendToDto) {
+    try {
+      return this.prismaService.$transaction(async (tx) => {
+        await this.addExpense({
+          description: sendInfo.description,
+          amount: sendInfo.amount,
+          userId: sendInfo.userId,
+        });
+        const recipientData = await this.prismaService.user.findUnique({
+          where: {
+            username: sendInfo.recipientUn,
+          },
+        });
+        await this.prismaService.user.update({
+          where: {
+            id: recipientData.id,
+          },
+          data: {
+            income: sendInfo.amount + recipientData.income,
+          },
+        });
+        return { verified: true, statusCode: 201 };
       });
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
