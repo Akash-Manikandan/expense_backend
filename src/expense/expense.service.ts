@@ -9,90 +9,115 @@ export class ExpenseService {
   constructor(private readonly prismaService: PrismaService) {}
   async addExpense(expenseData: addExpenseDto) {
     try {
-      return await this.prismaService.$transaction(async (tx) => {
-        const userData = await tx.user.findUniqueOrThrow({
-          where: {
-            id: expenseData.userId,
-          },
-        });
-        if (userData.income >= expenseData.amount) {
-          const expense = await tx.expense.create({
-            data: {
-              amount: expenseData.amount,
-              description: expenseData.description,
-              user: {
-                connect: {
-                  id: expenseData.userId,
-                },
-              },
-            },
-          });
-
-          const updateIncome = await tx.user.update({
+      if (expenseData.amount < 10000) {
+        return await this.prismaService.$transaction(async (tx) => {
+          const userData = await tx.user.findUniqueOrThrow({
             where: {
               id: expenseData.userId,
             },
-            data: {
-              income: {
-                decrement: expenseData.amount,
-              },
-              stats: {
-                connectOrCreate: {
-                  where: {
-                    userId: expenseData.userId,
-                  },
-                  create: {
-                    day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                    quota: [0, 0, 0, 0, 0, 0, 0],
+          });
+          if (userData.income >= expenseData.amount) {
+            const expense = await tx.expense.create({
+              data: {
+                amount: expenseData.amount,
+                description: expenseData.description,
+                user: {
+                  connect: {
+                    id: expenseData.userId,
                   },
                 },
               },
-            },
-            select: {
-              stats: true,
-            },
-          });
-          const dayOfWeek = dayjs(expense.date).day();
-          const stats = updateIncome.stats;
-          stats.quota[dayOfWeek] += expenseData.amount;
-          const users = await tx.stats.update({
-            where: {
-              userId: expenseData.userId,
-            },
-            data: {
-              quota: stats.quota,
-            },
-            select: {
-              user: {
-                select: {
-                  id: true,
-                  income: true,
-                  expense: {
-                    select: {
-                      id: true,
-                      description: true,
-                      amount: true,
-                      date: true,
+            });
+            if (expenseData.debit == true) {
+              const updateIncome = await tx.user.update({
+                where: {
+                  id: expenseData.userId,
+                },
+                data: {
+                  income: {
+                    decrement: expenseData.amount,
+                  },
+                  stats: {
+                    connectOrCreate: {
+                      where: {
+                        userId: expenseData.userId,
+                      },
+                      create: {
+                        day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                        quota: [0, 0, 0, 0, 0, 0, 0],
+                      },
                     },
                   },
                 },
+                select: {
+                  stats: true,
+                },
+              });
+              const dayOfWeek = dayjs(expense.date).day();
+              const stats = updateIncome.stats;
+              stats.quota[dayOfWeek] += expenseData.amount;
+
+              const users = await tx.stats.update({
+                where: {
+                  userId: expenseData.userId,
+                },
+                data: {
+                  quota: stats.quota,
+                },
+                select: {
+                  user: {
+                    select: {
+                      id: true,
+                      income: true,
+                      expense: {
+                        select: {
+                          id: true,
+                          description: true,
+                          amount: true,
+                          date: true,
+                        },
+                      },
+                    },
+                  },
+                  id: true,
+                  day: true,
+                  quota: true,
+                },
+              });
+              return users;
+            } else {
+              await this.prismaService.user.update({
+                where: {
+                  id: expenseData.userId,
+                },
+                data: {
+                  income: {
+                    increment: expenseData.amount,
+                  },
+                },
+              });
+              console.log(userData.income);
+              return true;
+            }
+          } else {
+            throw new HttpException(
+              {
+                status: HttpStatus.FORBIDDEN,
+                message: ['Amount exceeded account balance'],
               },
-              id: true,
-              day: true,
-              quota: true,
-            },
-          });
-          return users;
-        } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.FORBIDDEN,
-              message: ['Amount exceeded account balance'],
-            },
-            HttpStatus.FORBIDDEN,
-          );
-        }
-      });
+              HttpStatus.FORBIDDEN,
+            );
+          }
+        });
+      } else {
+        throw new HttpException(
+          {
+            status: HttpStatus.FORBIDDEN,
+            message: ['Credit/debit amount exceeded. Add the amount as Income'],
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      }
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
@@ -241,6 +266,7 @@ export class ExpenseService {
           description: sendInfo.description,
           amount: sendInfo.amount,
           userId: sendInfo.userId,
+          debit: false,
         });
         const recipientData = await this.prismaService.user.findUnique({
           where: {

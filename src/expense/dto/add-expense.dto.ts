@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class addExpenseDto {
   @IsString()
@@ -14,6 +14,10 @@ export class addExpenseDto {
   @MaxLength(24)
   @MinLength(24)
   userId: string;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  debit: boolean;
 }
 
 export class sendToDto {
