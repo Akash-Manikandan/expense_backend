@@ -86,7 +86,7 @@ export class ExpenseService {
               });
               return users;
             } else {
-              await this.prismaService.user.update({
+              const users = await this.prismaService.user.update({
                 where: {
                   id: expenseData.userId,
                 },
@@ -95,9 +95,28 @@ export class ExpenseService {
                     increment: expenseData.amount,
                   },
                 },
+                select: {
+                  income: true,
+                  id: true,
+                  expense:{
+                    select:{
+                      id:true,
+                      description:true,
+                      amount:true,
+                      date:true,
+                    }
+                  },
+                  stats: {
+                    select: {
+                      day: true,
+                      id: true,
+                      quota: true,
+                    },
+                  },
+                },
               });
-              console.log(userData.income);
-              return true;
+              // console.log(userData.income);
+              return users;
             }
           } else {
             throw new HttpException(
@@ -266,9 +285,10 @@ export class ExpenseService {
           description: sendInfo.description,
           amount: sendInfo.amount,
           userId: sendInfo.userId,
-          debit: false,
+          debit: true,
         });
-        const recipientData = await this.prismaService.user.findUnique({
+
+        const recipientData = await this.prismaService.user.findUniqueOrThrow({
           where: {
             username: sendInfo.recipientUn,
           },
@@ -314,5 +334,37 @@ export class ExpenseService {
         );
       }
     }
+  }
+  async getMonthly(id: string) {
+    const date = new Date();
+    const month = new Date(date.getFullYear(), date.getMonth());
+    console.log(month);
+    const stat = this.prismaService.expense.findMany({
+      where: {
+        userId: id,
+        date: { gte: month },
+      },
+    });
+    return stat;
+  }
+
+  async getWeekly(id: string) {
+    var date = new Date();
+    date.setDate(date.getDate() - 7);
+    date.toISOString();
+
+    const weekData = this.prismaService.expense.findMany({
+      where: {
+        AND: [
+          { userId: id },
+          {
+            date: {
+              gte: date,
+            },
+          },
+        ],
+      },
+    });
+    return weekData;
   }
 }

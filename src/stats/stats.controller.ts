@@ -8,4 +8,6 @@ export class StatsController {
   async getStats(@Param('id') id: string) {
     return this.statsService.getStats(id);
   }
+
+  
 }

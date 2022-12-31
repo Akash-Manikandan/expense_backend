@@ -17,4 +17,12 @@ export class StatsService {
     });
     return data;
   }
+
+  // async getWeekly(id: string) {
+  //   const weekData = this.prismaService.stats.findMany({
+  //     where: {
+  //       AND: [{ userId: id }, {}],
+  //     },
+  //   });
+  // }
 }
