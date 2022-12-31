@@ -9,7 +9,7 @@ export class ExpenseService {
   constructor(private readonly prismaService: PrismaService) {}
   async addExpense(expenseData: addExpenseDto) {
     try {
-      if (expenseData.amount < 10000) {
+      if (expenseData.amount <= 10000) {
         return await this.prismaService.$transaction(async (tx) => {
           const userData = await tx.user.findUniqueOrThrow({
             where: {
@@ -170,7 +170,7 @@ export class ExpenseService {
         throw new HttpException(
           {
             status: HttpStatus.FORBIDDEN,
-            message: ['Amount exceeded account balance'],
+            message: ['Amount must be less than or equal to 10,000'],
           },
           HttpStatus.FORBIDDEN,
         );
@@ -340,6 +340,7 @@ export class ExpenseService {
       }
     }
   }
+
   async getMonthly(id: string) {
     const date = new Date();
     const month = new Date(date.getFullYear(), date.getMonth());
@@ -357,8 +358,9 @@ export class ExpenseService {
     var date = new Date();
     date.setDate(date.getDate() - 7);
     date.toISOString();
-
-    const weekData = this.prismaService.expense.findMany({
+    const weekData = this.prismaService.expense.groupBy({
+      by: ['date'],
+      _sum: { amount: true },
       where: {
         AND: [
           { userId: id },
@@ -370,6 +372,18 @@ export class ExpenseService {
         ],
       },
     });
+    // const weekData = this.prismaService.expense.findMany({
+    //   where: {
+    //     AND: [
+    //       { userId: id },
+    //       {
+    //         date: {
+    //           gte: date,
+    //         },
+    //       },
+    //     ],
+    //   },
+    // });
     return weekData;
   }
 }
