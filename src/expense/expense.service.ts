@@ -86,7 +86,7 @@ export class ExpenseService {
               });
               return users;
             } else {
-              const users = await this.prismaService.user.update({
+              await this.prismaService.user.update({
                 where: {
                   id: expenseData.userId,
                 },
@@ -95,24 +95,29 @@ export class ExpenseService {
                     increment: expenseData.amount,
                   },
                 },
+              });
+              const users = await tx.stats.findUniqueOrThrow({
+                where: {
+                  userId: expenseData.userId,
+                },
                 select: {
-                  income: true,
-                  id: true,
-                  expense:{
-                    select:{
-                      id:true,
-                      description:true,
-                      amount:true,
-                      date:true,
-                    }
-                  },
-                  stats: {
+                  user: {
                     select: {
-                      day: true,
                       id: true,
-                      quota: true,
+                      income: true,
+                      expense: {
+                        select: {
+                          id: true,
+                          description: true,
+                          amount: true,
+                          date: true,
+                        },
+                      },
                     },
                   },
+                  id: true,
+                  day: true,
+                  quota: true,
                 },
               });
               // console.log(userData.income);
