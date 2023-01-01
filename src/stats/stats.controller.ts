@@ -9,5 +9,12 @@ export class StatsController {
     return this.statsService.getStats(id);
   }
 
-  
+  @Get('monthly/:id')
+  async getMonthly(@Param('id') id: string) {
+    return this.statsService.getMonthly(id);
+  }
+  @Get('weekly/:id')
+  async getWeekly(@Param('id') id: string) {
+    return this.statsService.getWeekly(id);
+  }
 }

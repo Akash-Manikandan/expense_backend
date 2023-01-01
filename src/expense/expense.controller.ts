@@ -24,14 +24,4 @@ export class ExpenseController {
   async sendTo(@Body() sendInfo: sendToDto) {
     return this.expenseService.sendTo(sendInfo);
   }
-
-  @Get('weekly/:id')
-  async getWeekly(@Param('id') id: string) {
-    return this.expenseService.getWeekly(id);
-  }
-
-  @Get('monthly/:id')
-  async getMonthly(@Param('id') id: string) {
-    return this.expenseService.getMonthly(id);
-  }
 }
