@@ -135,23 +135,17 @@ export class ExpenseService implements OnModuleInit {
               return users;
             }
           } else {
-            throw new HttpException(
-              {
-                status: HttpStatus.NOT_ACCEPTABLE,
-                message: ['Amount exceeded account balance'],
-              },
-              HttpStatus.NOT_ACCEPTABLE,
-            );
+            return {
+              verified: false,
+              message: ['Amount exceeded account balance'],
+            };
           }
         });
       } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.FORBIDDEN,
-            message: ['Credit/debit amount exceeded. Add the amount as Income'],
-          },
-          HttpStatus.FORBIDDEN,
-        );
+        return {
+          verified: false,
+          message: ['Credit/debit amount exceeded. Add the amount as Income'],
+        };
       }
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -178,35 +172,13 @@ export class ExpenseService implements OnModuleInit {
           );
         }
       } else {
-        if (error instanceof HttpException) {
-          if (error.getStatus() === HttpStatus.FORBIDDEN) {
-            throw new HttpException(
-              {
-                status: HttpStatus.FORBIDDEN,
-                message: [
-                  'Credit/debit amount exceeded. Add the amount as Income',
-                ],
-              },
-              HttpStatus.FORBIDDEN,
-            );
-          } else {
-            throw new HttpException(
-              {
-                status: HttpStatus.NOT_ACCEPTABLE,
-                message: ['Amount exceeded account balance'],
-              },
-              HttpStatus.NOT_ACCEPTABLE,
-            );
-          }
-        } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.FORBIDDEN,
-              message: ['Amount must be less than or equal to 10,000'],
-            },
-            HttpStatus.FORBIDDEN,
-          );
-        }
+        throw new HttpException(
+          {
+            status: HttpStatus.FORBIDDEN,
+            message: ['Unknown Error'],
+          },
+          HttpStatus.FORBIDDEN,
+        );
       }
     }
   }
@@ -422,22 +394,16 @@ export class ExpenseService implements OnModuleInit {
               message: msg,
             };
           } else {
-            throw new HttpException(
-              {
-                status: HttpStatus.NOT_FOUND,
-                message: [false, 'Amount exceeded account balance'],
-              },
-              HttpStatus.NOT_FOUND,
-            );
+            return {
+              verified: false,
+              message: ['Amount exceeded account balance'],
+            };
           }
         } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.FORBIDDEN,
-              message: [false, 'Cannot send to oneself'],
-            },
-            HttpStatus.FORBIDDEN,
-          );
+          return {
+            verified: false,
+            message: ['Cannot send to oneself'],
+          };
         }
       } catch (error) {
         if (error instanceof PrismaClientKnownRequestError) {
@@ -467,25 +433,6 @@ export class ExpenseService implements OnModuleInit {
             );
           }
         } else {
-          if (error instanceof HttpException) {
-            if (error.getStatus() === HttpStatus.FORBIDDEN) {
-              throw new HttpException(
-                {
-                  status: HttpStatus.FORBIDDEN,
-                  message: [false, 'Cannot send to oneself'],
-                },
-                HttpStatus.FORBIDDEN,
-              );
-            } else {
-              throw new HttpException(
-                {
-                  status: HttpStatus.NOT_FOUND,
-                  message: [false, 'Amount exceeded account balance'],
-                },
-                HttpStatus.NOT_FOUND,
-              );
-            }
-          }
           throw new HttpException(
             {
               status: HttpStatus.FORBIDDEN,
