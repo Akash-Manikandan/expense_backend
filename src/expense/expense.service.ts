@@ -354,8 +354,17 @@ export class ExpenseService implements OnModuleInit {
             income: true,
           },
         });
+        console.log(data);
         if (data.id != sendInfo.userId) {
-          if (data.income >= sendInfo.amount) {
+          const senderIncome = await tx.user.findUniqueOrThrow({
+            where: {
+              id: sendInfo.userId,
+            },
+            select: {
+              income: true,
+            },
+          });
+          if (senderIncome.income >= sendInfo.amount) {
             const recipientData = await tx.user.update({
               where: {
                 username: sendInfo.recipientUn,
@@ -395,10 +404,9 @@ export class ExpenseService implements OnModuleInit {
                 userId: data.id,
               },
             });
-            const dayOfWeek = dayjs(expenseData.date).day();
+            const dayOfWeek = dayjs(expenseData.date).tz('Asia/Kolkata').day();
             const stats = senderData.stats;
             stats.quota[dayOfWeek] += expenseData.amount;
-
             await tx.stats.update({
               where: {
                 userId: expenseData.userId,
@@ -425,10 +433,10 @@ export class ExpenseService implements OnModuleInit {
         } else {
           throw new HttpException(
             {
-              status: HttpStatus.NOT_FOUND,
+              status: HttpStatus.FORBIDDEN,
               message: [false, 'Cannot send to oneself'],
             },
-            HttpStatus.NOT_FOUND,
+            HttpStatus.FORBIDDEN,
           );
         }
       } catch (error) {
@@ -459,6 +467,25 @@ export class ExpenseService implements OnModuleInit {
             );
           }
         } else {
+          if (error instanceof HttpException) {
+            if (error.getStatus() === HttpStatus.FORBIDDEN) {
+              throw new HttpException(
+                {
+                  status: HttpStatus.FORBIDDEN,
+                  message: [false, 'Cannot send to oneself'],
+                },
+                HttpStatus.FORBIDDEN,
+              );
+            } else {
+              throw new HttpException(
+                {
+                  status: HttpStatus.NOT_FOUND,
+                  message: [false, 'Amount exceeded account balance'],
+                },
+                HttpStatus.NOT_FOUND,
+              );
+            }
+          }
           throw new HttpException(
             {
               status: HttpStatus.FORBIDDEN,
