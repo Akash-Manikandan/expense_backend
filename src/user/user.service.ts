@@ -35,8 +35,6 @@ export class UserService {
     }
   }
 
-  //error.code === 'P2002' signup unique constraint
-
   async signinUser(user: LoginDto) {
     try {
       const signinData = await this.prisma.user.findUniqueOrThrow({
