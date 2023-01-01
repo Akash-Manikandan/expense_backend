@@ -145,7 +145,7 @@ export class ExpenseService implements OnModuleInit {
           }
         });
       } else {
-        return new HttpException(
+        throw new HttpException(
           {
             status: HttpStatus.FORBIDDEN,
             message: ['Credit/debit amount exceeded. Add the amount as Income'],
