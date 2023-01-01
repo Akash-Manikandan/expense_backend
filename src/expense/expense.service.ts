@@ -240,7 +240,31 @@ export class ExpenseService {
             userId: deleteData.userId,
           },
         });
-        statData.quota[dayOfWeek] -= deleteData.amount;
+        if (deleteData.debit == true) {
+          statData.quota[dayOfWeek] -= deleteData.amount;
+          await tx.user.update({
+            where: {
+              id: deleteData.userId,
+            },
+            data: {
+              income: {
+                increment: deleteData.amount,
+              },
+            },
+          });
+        } else {
+          statData.quota[dayOfWeek] += deleteData.amount;
+          await tx.user.update({
+            where: {
+              id: deleteData.userId,
+            },
+            data: {
+              income: {
+                decrement: deleteData.amount,
+              },
+            },
+          });
+        }
         await tx.stats.update({
           where: {
             id: statData.id,
@@ -249,16 +273,7 @@ export class ExpenseService {
             quota: statData.quota,
           },
         });
-        await tx.user.update({
-          where: {
-            id: deleteData.userId,
-          },
-          data: {
-            income: {
-              increment: deleteData.amount,
-            },
-          },
-        });
+
         return true;
       });
     } catch (error) {
