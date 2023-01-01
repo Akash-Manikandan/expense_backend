@@ -21,6 +21,7 @@ export class ExpenseService {
               data: {
                 amount: expenseData.amount,
                 description: expenseData.description,
+                debit: expenseData.debit,
                 user: {
                   connect: {
                     id: expenseData.userId,
@@ -120,7 +121,6 @@ export class ExpenseService {
                   quota: true,
                 },
               });
-              // console.log(userData.income);
               return users;
             }
           } else {
@@ -248,9 +248,20 @@ export class ExpenseService {
             quota: statData.quota,
           },
         });
+        await tx.user.update({
+          where: {
+            id: deleteData.userId,
+          },
+          data: {
+            income: {
+              increment: deleteData.amount,
+            },
+          },
+        });
         return true;
       });
     } catch (error) {
+      console.log(error);
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
           throw new HttpException(
