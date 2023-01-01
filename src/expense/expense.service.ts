@@ -304,60 +304,77 @@ export class ExpenseService {
           },
           select: {
             id: true,
+            income: true,
           },
         });
-        console.log(data);
         if (data.id != sendInfo.userId) {
-          const recipientData = await tx.user.update({
-            where: {
-              username: sendInfo.recipientUn,
-            },
-            data: {
-              income: {
-                increment: sendInfo.amount,
+          if (data.income >= sendInfo.amount) {
+            const recipientData = await tx.user.update({
+              where: {
+                username: sendInfo.recipientUn,
               },
-            },
-          });
-          const senderData = await tx.user.update({
-            where: {
-              id: sendInfo.userId,
-            },
-            data: {
-              income: {
-                decrement: sendInfo.amount,
+              data: {
+                income: {
+                  increment: sendInfo.amount,
+                },
               },
-            },
-            select: {
-              stats: true,
-            },
-          });
-          const expenseData = await tx.expense.create({
-            data: {
-              debit: true,
-              description: sendInfo.description,
-              amount: sendInfo.amount,
-              userId: sendInfo.userId,
-            },
-          });
+            });
+            const senderData = await tx.user.update({
+              where: {
+                id: sendInfo.userId,
+              },
+              data: {
+                income: {
+                  decrement: sendInfo.amount,
+                },
+              },
+              select: {
+                stats: true,
+              },
+            });
+            const expenseData = await tx.expense.create({
+              data: {
+                debit: true,
+                description: sendInfo.description,
+                amount: sendInfo.amount,
+                userId: sendInfo.userId,
+              },
+            });
+            await tx.expense.create({
+              data: {
+                debit: false,
+                description: sendInfo.description,
+                amount: sendInfo.amount,
+                userId: data.id,
+              },
+            });
+            const dayOfWeek = dayjs(expenseData.date).day();
+            const stats = senderData.stats;
+            stats.quota[dayOfWeek] += expenseData.amount;
 
-          const dayOfWeek = dayjs(expenseData.date).day();
-          const stats = senderData.stats;
-          stats.quota[dayOfWeek] += expenseData.amount;
-
-          await tx.stats.update({
-            where: {
-              userId: expenseData.userId,
-            },
-            data: {
-              quota: stats.quota,
-            },
-          });
-          const msg = 'Sent to ' + recipientData.username;
-          return {
-            verified: true,
-            statusCode: 201,
-            message: msg,
-          };
+            await tx.stats.update({
+              where: {
+                userId: expenseData.userId,
+              },
+              data: {
+                quota: stats.quota,
+              },
+            });
+            const msg = 'Sent to ' + recipientData.username;
+            return {
+              verified: true,
+              statusCode: 201,
+              message: msg,
+            };
+          } else {
+            throw new HttpException(
+              {
+                status: HttpStatus.NOT_FOUND,
+                message: [false, 'Amount exceeded account balance'],
+              },
+              HttpStatus.NOT_FOUND,
+            );
+          }
         } else {
           throw new HttpException(
             {
