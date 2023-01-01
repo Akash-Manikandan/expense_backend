@@ -1,13 +1,23 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { addExpenseDto, sendToDto } from './dto/add-expense.dto';
 import dayjs from 'dayjs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import { send } from 'process';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 
 @Injectable()
-export class ExpenseService {
+export class ExpenseService implements OnModuleInit {
   constructor(private readonly prismaService: PrismaService) {}
+  onModuleInit() {
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+  }
   async addExpense(expenseData: addExpenseDto) {
     try {
       if (expenseData.amount <= 10000) {
@@ -55,7 +65,7 @@ export class ExpenseService {
                   stats: true,
                 },
               });
-              const dayOfWeek = dayjs(expense.date).day();
+              const dayOfWeek = dayjs(expense.date).tz('India/Kolkata').day();
               const stats = updateIncome.stats;
               stats.quota[dayOfWeek] += expenseData.amount;
 
@@ -88,7 +98,7 @@ export class ExpenseService {
               });
               return users;
             } else {
-              await this.prismaService.user.update({
+              await tx.user.update({
                 where: {
                   id: expenseData.userId,
                 },
@@ -125,9 +135,9 @@ export class ExpenseService {
               return users;
             }
           } else {
-            return new HttpException(
+            throw new HttpException(
               {
-                status: HttpStatus.FORBIDDEN,
+                status: HttpStatus.NOT_ACCEPTABLE,
                 message: ['Amount exceeded account balance'],
               },
               HttpStatus.FORBIDDEN,
@@ -168,13 +178,35 @@ export class ExpenseService {
           );
         }
       } else {
-        throw new HttpException(
-          {
-            status: HttpStatus.FORBIDDEN,
-            message: ['Amount must be less than or equal to 10,000'],
-          },
-          HttpStatus.FORBIDDEN,
-        );
+        if (error instanceof HttpException) {
+          if (error.getStatus() === HttpStatus.FORBIDDEN) {
+            throw new HttpException(
+              {
+                status: HttpStatus.FORBIDDEN,
+                message: [
+                  'Credit/debit amount exceeded. Add the amount as Income',
+                ],
+              },
+              HttpStatus.FORBIDDEN,
+            );
+          } else {
+            throw new HttpException(
+              {
+                status: HttpStatus.NOT_ACCEPTABLE,
+                message: ['Amount exceeded account balance'],
+              },
+              HttpStatus.FORBIDDEN,
+            );
+          }
+        } else {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              message: ['Amount must be less than or equal to 10,000'],
+            },
+            HttpStatus.FORBIDDEN,
+          );
+        }
       }
     }
   }
