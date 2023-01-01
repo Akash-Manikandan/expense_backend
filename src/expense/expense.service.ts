@@ -140,7 +140,7 @@ export class ExpenseService implements OnModuleInit {
                 status: HttpStatus.NOT_ACCEPTABLE,
                 message: ['Amount exceeded account balance'],
               },
-              HttpStatus.FORBIDDEN,
+              HttpStatus.NOT_ACCEPTABLE,
             );
           }
         });
@@ -195,7 +195,7 @@ export class ExpenseService implements OnModuleInit {
                 status: HttpStatus.NOT_ACCEPTABLE,
                 message: ['Amount exceeded account balance'],
               },
-              HttpStatus.FORBIDDEN,
+              HttpStatus.NOT_ACCEPTABLE,
             );
           }
         } else {
