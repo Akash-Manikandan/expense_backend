@@ -96,6 +96,7 @@ export class UserService {
           createdAt: true,
           expense: {
             select: {
+              debit: true,
               id: true,
               description: true,
               date: true,

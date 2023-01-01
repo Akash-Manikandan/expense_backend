@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { addExpenseDto, sendToDto } from './dto/add-expense.dto';
 import dayjs from 'dayjs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import { send } from 'process';
 
 @Injectable()
 export class ExpenseService {
@@ -295,61 +296,115 @@ export class ExpenseService {
   }
 
   async sendTo(sendInfo: sendToDto) {
-    try {
-      return this.prismaService.$transaction(async (tx) => {
-        await this.addExpense({
-          description: sendInfo.description,
-          amount: sendInfo.amount,
-          userId: sendInfo.userId,
-          debit: true,
-        });
-
-        const recipientData = await this.prismaService.user.findUniqueOrThrow({
+    return this.prismaService.$transaction(async (tx) => {
+      try {
+        const data = await tx.user.findUniqueOrThrow({
           where: {
             username: sendInfo.recipientUn,
           },
-        });
-        await this.prismaService.user.update({
-          where: {
-            id: recipientData.id,
-          },
-          data: {
-            income: sendInfo.amount + recipientData.income,
+          select: {
+            id: true,
           },
         });
-        return { verified: true, statusCode: 201 };
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
+        console.log(data);
+        if (data.id != sendInfo.userId) {
+          const recipientData = await tx.user.update({
+            where: {
+              username: sendInfo.recipientUn,
+            },
+            data: {
+              income: {
+                increment: sendInfo.amount,
+              },
+            },
+          });
+          const senderData = await tx.user.update({
+            where: {
+              id: sendInfo.userId,
+            },
+            data: {
+              income: {
+                decrement: sendInfo.amount,
+              },
+            },
+            select: {
+              stats: true,
+            },
+          });
+          const expenseData = await tx.expense.create({
+            data: {
+              debit: true,
+              description: sendInfo.description,
+              amount: sendInfo.amount,
+              userId: sendInfo.userId,
+            },
+          });
+
+          const dayOfWeek = dayjs(expenseData.date).day();
+          const stats = senderData.stats;
+          stats.quota[dayOfWeek] += expenseData.amount;
+
+          await tx.stats.update({
+            where: {
+              userId: expenseData.userId,
+            },
+            data: {
+              quota: stats.quota,
+            },
+          });
+          const msg = 'Sent to ' + recipientData.username;
+          return {
+            verified: true,
+            statusCode: 201,
+            message: msg,
+          };
+        } else {
           throw new HttpException(
             {
               status: HttpStatus.NOT_FOUND,
-              message: [false, 'Transaction Not Found'],
+              message: [false, 'Cannot send to oneself'],
             },
             HttpStatus.NOT_FOUND,
           );
-        } else if (error.code === 'P2023') {
+        }
+      } catch (error) {
+        if (error instanceof PrismaClientKnownRequestError) {
+          if (error.code === 'P2025') {
+            throw new HttpException(
+              {
+                status: HttpStatus.NOT_FOUND,
+                message: [false, 'User not found'],
+              },
+              HttpStatus.NOT_FOUND,
+            );
+          } else if (error.code === 'P2023') {
+            throw new HttpException(
+              {
+                status: HttpStatus.FORBIDDEN,
+                message: [false, 'Invalid Transaction'],
+              },
+              HttpStatus.FORBIDDEN,
+            );
+          } else {
+            throw new HttpException(
+              {
+                status: HttpStatus.FORBIDDEN,
+                message: [false, 'Unknown Error'],
+              },
+              HttpStatus.FORBIDDEN,
+            );
+          }
+        } else {
           throw new HttpException(
             {
               status: HttpStatus.FORBIDDEN,
-              message: [false, 'Invalid Transaction'],
+              message: [false, 'Unknown Error'],
             },
             HttpStatus.FORBIDDEN,
           );
-        } else {
-          throw new HttpException(
-            { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
-            HttpStatus.FORBIDDEN,
-          );
         }
-      } else {
-        throw new HttpException(
-          { status: HttpStatus.FORBIDDEN, message: [false, 'Unknown Error'] },
-          HttpStatus.FORBIDDEN,
-        );
       }
-    }
+    });
   }
 
   async getMonthly(id: string) {
