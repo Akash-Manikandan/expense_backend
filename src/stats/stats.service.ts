@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import utc from 'dayjs/plugin/utc';
@@ -6,8 +6,12 @@ import timezone from 'dayjs/plugin/timezone';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class StatsService {
+export class StatsService implements OnModuleInit {
   constructor(private readonly prismaService: PrismaService) {}
+  onModuleInit() {
+    dayjs.extend(utc);
+    dayjs.extend(timezone);
+  }
   async getStats(id: string) {
     const data = await this.prismaService.stats.findMany({
       where: {
@@ -48,7 +52,7 @@ export class StatsService {
         _sum: { amount: true },
         where: {
           userId: id,
-          debit: false,
+          debit: true,
           date: {
             lte: today,
             gt: date,
@@ -56,7 +60,7 @@ export class StatsService {
         },
       });
       weekData['day'] = dayjs(today).tz('Asia/Kolkata').day();
-      if (weekData._sum.amount == null) {
+      if (weekData._sum.amount === null) {
         weekData._sum.amount = 0;
       }
       aggregateData.push(weekData);
