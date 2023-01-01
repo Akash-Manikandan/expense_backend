@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { contains } from 'class-validator';
+import dayjs from 'dayjs';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -33,32 +36,33 @@ export class StatsService {
   }
 
   async getWeekly(id: string) {
-    var date = new Date();
-    date.setDate(date.getDate() - 7);
-    date.toISOString();
-    const weekData = this.prismaService.expense.groupBy({
-      by: ['date'],
-      _sum: { amount: true },
-      where: {
-        userId: id,
-        date: {
-          gte: date,
+    let aggregateData = [];
+    let today = new Date();
+    today.setDate(today.getDate() - 0);
+    today.toISOString();
+    for (let i = 1; i <= 7; i++) {
+      let date = new Date();
+      date.setDate(date.getDate() - i);
+      date.toISOString();
+      const weekData = await this.prismaService.expense.aggregate({
+        _sum: { amount: true },
+        where: {
+          userId: id,
+          debit: false,
+          date: {
+            lte: today,
+            gt: date,
+          },
         },
-      },
-    });
-    console.table(weekData);
-    // const weekData = this.prismaService.expense.findMany({
-    //   where: {
-    //     AND: [
-    //       { userId: id },
-    //       {
-    //         date: {
-    //           gte: date,
-    //         },
-    //       },
-    //     ],
-    //   },
-    // });
-    return weekData;
+      });
+      weekData['day'] = dayjs(today).tz('Asia/Kolkata').day();
+      if (weekData._sum.amount == null) {
+        weekData._sum.amount = 0;
+      }
+      aggregateData.push(weekData);
+      today = date;
+    }
+
+    return aggregateData;
   }
 }
