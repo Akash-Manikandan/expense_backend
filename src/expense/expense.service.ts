@@ -65,7 +65,7 @@ export class ExpenseService implements OnModuleInit {
                   stats: true,
                 },
               });
-              const dayOfWeek = dayjs(expense.date).tz('India/Kolkata').day();
+              const dayOfWeek = dayjs(expense.date).tz('Asia/Kolkata').day();
               const stats = updateIncome.stats;
               stats.quota[dayOfWeek] += expenseData.amount;
 
