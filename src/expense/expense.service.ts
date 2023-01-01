@@ -125,7 +125,7 @@ export class ExpenseService {
               return users;
             }
           } else {
-            throw new HttpException(
+            return new HttpException(
               {
                 status: HttpStatus.FORBIDDEN,
                 message: ['Amount exceeded account balance'],
@@ -135,7 +135,7 @@ export class ExpenseService {
           }
         });
       } else {
-        throw new HttpException(
+        return new HttpException(
           {
             status: HttpStatus.FORBIDDEN,
             message: ['Credit/debit amount exceeded. Add the amount as Income'],
