@@ -62,7 +62,7 @@ export class StatsService {
       aggregateData.push(weekData);
       today = date;
     }
-
+    aggregateData.sort((a, b) => a.day - b.day);
     return aggregateData;
   }
 }
