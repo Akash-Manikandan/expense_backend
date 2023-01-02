@@ -87,7 +87,7 @@ export class StatsService implements OnModuleInit {
         },
       });
       //console.log(today, date, weekData);
-      weekData['day'] = dayjs(today).tz('Asia/Kolkata').day();
+      weekData['day'] = dayjs(date).tz('Asia/Kolkata').day();
       if (weekData._sum.amount === null) {
         weekData._sum.amount = 0;
       }
