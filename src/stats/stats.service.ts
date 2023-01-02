@@ -68,12 +68,13 @@ export class StatsService implements OnModuleInit {
   async getWeekly(id: string) {
     let aggregateData = [];
     let today = new Date();
-    today.setDate(today.getDate() - 0);
-    today.toISOString();
-    for (let i = 1; i <= 7; i++) {
+    today.setDate(today.getDate() + 1);
+    today.setHours(0,0,0,0);
+    for (let i = 0; i < 7; i++) {
       let date = new Date();
       date.setDate(date.getDate() - i);
-      date.toISOString();
+      date.setHours(0,0,0,0);
+
       const weekData = await this.prismaService.expense.aggregate({
         _sum: { amount: true },
         where: {
@@ -85,7 +86,7 @@ export class StatsService implements OnModuleInit {
           },
         },
       });
-      // console.log(weekData);
+      //console.log(today, date, weekData);
       weekData['day'] = dayjs(today).tz('Asia/Kolkata').day();
       if (weekData._sum.amount === null) {
         weekData._sum.amount = 0;
